@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hsk.task.mapper.QueryQuantityMapper" >
+
+<select id="queryQuantityByDate" resultType="com.hsk.task.bean.CallQuantity" parameterType="java.lang.String" >
+	SELECT
+		hpo.merch_id,
+		hpo.cost_group,
+		hpo.DS_NO,
+		count(1) AS group_count
+	FROM
+		hsk_ser_consump hsc
+	JOIN hsk_purch_order hpo ON hpo.porder_no = hsc.porder_no
+	WHERE
+		hpo.cost_group IS NOT NULL
+	AND hsc.sts_code = 0
+	AND CONSUMP_AMOUNT &gt; 0
+	AND hsc.ser_call_tm &lt; #{date}
+	GROUP BY
+		hpo.merch_id,
+		hpo.cost_group,
+		hpo.DS_NO
+</select>
+
+<select id="queryYesterdayQuantity" resultType="com.hsk.task.bean.CallQuantity">
+	SELECT
+		hpo.merch_id,
+		hpo.cost_group,
+		hpo.DS_NO,
+		count(1) AS group_count
+	FROM
+		hsk_ser_consump hsc
+	JOIN hsk_purch_order hpo ON hpo.porder_no = hsc.porder_no
+	WHERE
+		hpo.cost_group IS NOT NULL
+	AND hsc.sts_code = 0
+	AND CONSUMP_AMOUNT &gt; 0
+	AND hsc.ser_call_tm &gt; #{yesterday}
+	AND hsc.ser_call_tm &lt; #{nowDay}
+	GROUP BY
+		hpo.merch_id,
+		hpo.cost_group,
+		hpo.DS_NO
+</select>
+
+<insert id="insertQuantity"  parameterType="java.util.List">
+	INSERT INTO `ssds`.`hsk_report_day_invoke` (
+		`merchant_id`,
+		`service_id`,
+		`cost_group`,
+		`day_invoke_count`,
+		`history_invoke_count`,
+		`invoke_day`,
+		`create_user`,
+		`create_tm`,
+		`modify_user`,
+		`modify_tm`
+	)
+	VALUES
+	<foreach collection ="list" item="temp" separator =",">
+		(
+			#{temp.merchant_id},
+			#{temp.service_id},
+			#{temp.cost_group},
+			'0',
+			#{temp.history_invoke_count},
+			#{temp.invoke_day},
+			#{temp.create_user},
+			now(),
+			#{temp.modify_user},
+			now()
+		)
+	</foreach >
+</insert>
+
+<update id="updateYesterdayQuantity" parameterType="java.util.List">
+	<foreach collection ="list" item="temp" separator =",">
+		UPDATE hsk_report_day_invoke
+		SET day_invoke_count = #{temp.day_invoke_count}
+		WHERE
+			merchant_id = #{temp.merchant_id}
+		AND service_id = #{temp.service_id}
+		AND invoke_day = #{temp.invoke_day}
+	</foreach>
+</update>  
+</mapper>
