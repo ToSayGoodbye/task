@@ -2,8 +2,137 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.hsk.task.mapper.AppMessageMapper" >
 
-  <select id="selectByPrimaryKey" resultType="com.hsk.task.bean.AppMessage" parameterType="java.lang.String" >
-    select name from hsk_data_score_201801_1 where RECORD_ID = #{id}
+  <select id="queryContents" resultType="com.hsk.task.bean.AppMessage" parameterType="Map" >
+    SELECT
+		id,
+		username,
+		imgUrl,
+		date_format(time, '%m月%d日 %H:%i') as time,
+		phone,
+		content,
+		<if test="tab==2">
+			ROUND (
+				6378.138 * 2 * ASIN(
+					SQRT(
+						POW(
+							SIN(
+								(
+									#{latitude} * PI() / 180 - latitude * PI() / 180
+								) / 2
+							),
+							2
+						) + COS(#{latitude} * PI() / 180) * COS(latitude * PI() / 180) * POW(
+							SIN(
+								(
+									#{longitude} * PI() / 180 - longitude * PI() / 180
+								) / 2
+							),
+							2
+						)
+					)
+				) * 1000
+			) AS distance,
+		</if>
+		address,
+		reply_count,
+		view_count,
+		photos
+	FROM
+		content
+		 	<if test="tab!=null and tab!=0 and tab!=2">
+		 	where
+		 		tab = #{tab}
+		 		ORDER BY
+				time DESC
+		 	</if>
+		 	<if test="tab==2">
+		 		ORDER BY
+				distance
+		 	</if>
+		 	<if test="tab==0">
+		 		ORDER BY
+				time DESC
+		 	</if>
+	LIMIT ${(page-1)*pagesize},${pagesize}
   </select>
+  
+  <select id="queryReplys" resultType="com.hsk.task.bean.Reply" parameterType="String" >
+    SELECT
+		id,
+		openid,
+		username,
+		imgUrl,
+		date_format(time, '%m月%d日 %H:%i') as time,
+		reply_id,
+		content,
+		content_id
+	FROM
+		reply
+	where content_id=#{id}
+	ORDER BY
+		time asc
+  </select>
+  
+  <insert id="addInfo" parameterType="Map">
+  		INSERT INTO `content` (
+			`openid`,
+			`username`,
+			`imgUrl`,
+			`time`,
+			`phone`,
+			`content`,
+			tab,
+			latitude,
+			longitude,
+			address,
+			photos
+		)
+		VALUES
+			(
+				#{openid},
+				#{username},
+				#{imgUrl},
+				now(),
+				#{phone},
+				#{content},
+				#{tab},
+				#{latitude},
+				#{longitude},
+				#{address},
+				#{photoUrls}
+			);
+  </insert>
+  
+  <insert id="addReply" parameterType="Map">
+  		INSERT INTO `reply` (
+			`openid`,
+			`username`,
+			`imgUrl`,
+			`time`,
+			`content`,
+			`reply_id`,
+			`content_id`
+		)
+		VALUES
+			(
+				#{openid},
+				#{username},
+				#{imgUrl},
+				now(),
+				#{content},
+				#{reply_id},
+				#{content_id}
+			);
+
+  </insert>
+  
+  <update id="addPl" parameterType="String">
+	update content set reply_count = reply_count+1 where id = #{content_id}
+  </update>
+  
+  <update id="addView" parameterType="String">
+	update content set view_count = view_count+1 where id = #{content_id}
+  </update>
+  
   
 </mapper>
