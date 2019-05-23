@@ -80,7 +80,7 @@ public class ContentController {
     public String uploadImg(HttpServletRequest request, @RequestParam(value = "file", required = false) MultipartFile file) throws IOException {
         System.out.println("执行upload");
         request.setCharacterEncoding("UTF-8");
-        logger.info("执行图片上传。。。");
+        logger.info("执行图片上传。。。！！！");
         String user = request.getParameter("user");
         logger.info("user:"+user);
         String trueFileName;
